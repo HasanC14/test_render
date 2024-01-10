@@ -52,12 +52,14 @@ const client = new MongoClient(uri, {
 
 let EventCollection;
 let UserCollection;
+let TeacherCollection;
 
 client.connect().then(() => {
   console.log("Connected to MongoDB");
   const db = client.db("GubConnect");
   EventCollection = db.collection("EventCollection");
   UserCollection = db.collection("User");
+  TeacherCollection = client.db("GubConnect").collection("teacherCollection");
 });
 
 app.use(cors());
@@ -67,10 +69,11 @@ async function run() {
   try {
     await client.connect();
     const db = client.db("GubConnect");
-
     const UserCollection = db.collection("User");
     const AdminCollection = db.collection("Admin");
-    const TeacherCollection = db.collection("Teacher");
+    const TeacherCollection = client
+      .db("GubConnect")
+      .collection("teacherCollection");
     const JobPostCollection = db.collection("JobPost");
     const EventCollection = db.collection("Event");
     app.post(
@@ -196,38 +199,6 @@ async function run() {
       }
     });
 
-    // Create user
-    // app.post("/userLogin", async (req, res) => {
-    //   try {
-    //     const { S_id, Password } = req.body;
-
-    //     // Find the user by S_id and Password
-    //     const user = await UserCollection.findOne({ S_id, Password });
-
-    //     if (user) {
-    //       // Check the status of the user
-    //       if (user.Status === "Approved") {
-    //         // Generate JWT token
-    //         const token = jwt.sign({ S_id }, secretKey, { expiresIn: "1h" });
-
-    //         // Send success response with token
-    //         res.json({ success: true, token });
-    //       } else if (user.Status === "Pending") {
-    //         res.json({ success: false, message: "Approval is pending" });
-    //       } else {
-    //         res.json({ success: false, message: "User status is invalid" });
-    //       }
-    //     } else {
-    //       res.json({ success: false, message: "Invalid credentials" });
-    //     }
-    //   } catch (error) {
-    //     console.error("Error:", error);
-    //     res
-    //       .status(500)
-    //       .json({ error: "Internal Server Error", details: error.message });
-    //   }
-    // });
-
     app.post("/adminLogin", async (req, res) => {
       try {
         const { email, password } = req.body;
@@ -248,7 +219,46 @@ async function run() {
           .json({ error: "Internal Server Error", details: error.message });
       }
     });
+    //faculty login
+    app.post("/facultyLogin", async (req, res) => {
+      try {
+        const { Email, Password } = req.body;
 
+        // Basic validation
+        if (!Email || !Password) {
+          return res
+            .status(400)
+            .json({ success: false, error: "Invalid request" });
+        }
+
+        const faculty = await TeacherCollection.findOne({ email: Email });
+
+        if (!faculty) {
+          return res
+            .status(401)
+            .json({ success: false, error: "Invalid email or password" });
+        }
+
+        const passwordMatch = await bcrypt.compare(Password, faculty.password);
+
+        if (!passwordMatch) {
+          return res
+            .status(401)
+            .json({ success: false, error: "Invalid email or password" });
+        }
+        const token = jwt.sign({ email: faculty.email }, secretKey, {
+          expiresIn: "1h",
+        });
+        console.log(token);
+        // Send the token in the response
+        res.json({ success: true, token });
+      } catch (error) {
+        console.error("Server Error:", error);
+        res
+          .status(500)
+          .json({ success: false, error: "Internal Server Error" });
+      }
+    });
     // Add new admin
     app.post("/addAdmin", async (req, res) => {
       try {
@@ -276,6 +286,49 @@ async function run() {
         res.status(500).json({ error: error.message });
       }
     });
+    //faculty add
+    app.post(
+      "/addfaculty",
+      upload.fields([{ name: "ProfileImage", maxCount: 1 }]),
+      async (req, res) => {
+        try {
+          const { name, email, password } = req.body;
+
+          // Validation
+          if (!name || !email || !password) {
+            return res.status(400).json({
+              error: "Name, email, and password are required fields.",
+            });
+          }
+
+          // Hash the password
+          const hashedPassword = await bcrypt.hash(password, 10);
+
+          // Check if the ProfileImage field is present in the request
+          if (!req.files || !req.files["ProfileImage"]) {
+            return res.status(400).json({ error: "ProfileImage is required." });
+          }
+
+          const profileImagePath = req.files["ProfileImage"][0].path;
+
+          const newFaculty = {
+            name,
+            email,
+            password: hashedPassword,
+            profileImage: profileImagePath,
+          };
+
+          const result = await TeacherCollection.insertOne(newFaculty);
+          res.json(result);
+        } catch (error) {
+          console.error("Server Error:", error);
+          res
+            .status(500)
+            .json({ error: "Internal Server Error", details: error.message });
+        }
+      }
+    );
+
     app.get("/usersStudentRequested", async (req, res) => {
       try {
         const users = await UserCollection.find({
@@ -502,7 +555,7 @@ async function run() {
     });
 
     // Get all teachers
-    app.get("/teachers", async (req, res) => {
+    app.get("/getfaculty", async (req, res) => {
       try {
         const teachers = await TeacherCollection.find({}).toArray();
         res.json(teachers);
