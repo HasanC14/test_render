@@ -219,7 +219,47 @@ async function run() {
           .json({ error: "Internal Server Error", details: error.message });
       }
     });
-    //faculty login
+    //faculty login Prattay
+    // app.post("/facultyLogin", async (req, res) => {
+    //   try {
+    //     const { Email, Password } = req.body;
+
+    //     // Basic validation
+    //     if (!Email || !Password) {
+    //       return res
+    //         .status(400)
+    //         .json({ success: false, error: "Invalid request" });
+    //     }
+
+    //     const faculty = await TeacherCollection.findOne({ email: Email });
+
+    //     if (!faculty) {
+    //       return res
+    //         .status(401)
+    //         .json({ success: false, error: "Invalid email or password" });
+    //     }
+
+    //     const passwordMatch = await bcrypt.compare(Password, faculty.password);
+
+    //     if (!passwordMatch) {
+    //       return res
+    //         .status(401)
+    //         .json({ success: false, error: "Invalid email or password" });
+    //     }
+    //     const token = jwt.sign({ email: faculty.email }, secretKey, {
+    //       expiresIn: "1h",
+    //     });
+    //     console.log(token);
+    //     // Send the token in the response
+    //     res.json({ success: true, token });
+    //   } catch (error) {
+    //     console.error("Server Error:", error);
+    //     res
+    //       .status(500)
+    //       .json({ success: false, error: "Internal Server Error" });
+    //   }
+    // });
+    //faculty login Hasan
     app.post("/facultyLogin", async (req, res) => {
       try {
         const { Email, Password } = req.body;
@@ -246,10 +286,13 @@ async function run() {
             .status(401)
             .json({ success: false, error: "Invalid email or password" });
         }
+
+        // Generate JWT token
         const token = jwt.sign({ email: faculty.email }, secretKey, {
           expiresIn: "1h",
         });
         console.log(token);
+
         // Send the token in the response
         res.json({ success: true, token });
       } catch (error) {
@@ -259,6 +302,7 @@ async function run() {
           .json({ success: false, error: "Internal Server Error" });
       }
     });
+
     // Add new admin
     app.post("/addAdmin", async (req, res) => {
       try {
