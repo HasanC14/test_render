@@ -71,9 +71,7 @@ async function run() {
     const db = client.db("GubConnect");
     const UserCollection = db.collection("User");
     const AdminCollection = db.collection("Admin");
-    const TeacherCollection = client
-      .db("GubConnect")
-      .collection("teacherCollection");
+    const TeacherCollection = db.collection("teacherCollection");
     const JobPostCollection = db.collection("JobPost");
     const EventCollection = db.collection("Event");
     app.post(
@@ -609,11 +607,27 @@ async function run() {
     });
 
     // Get teacher by ID
-    app.get("/teachers/:id", async (req, res) => {
+    // app.get("/teachers/:id", async (req, res) => {
+    //   try {
+    //     const teacherId = req.params.id;
+    //     const teacher = await TeacherCollection.findOne({
+    //       _id: ObjectId(teacherId),
+    //     });
+    //     if (!teacher) {
+    //       res.status(404).json({ message: "Teacher not found" });
+    //       return;
+    //     }
+    //     res.json(teacher);
+    //   } catch (error) {
+    //     res.status(500).json({ error: error.message });
+    //   }
+    // });
+    // Get teacher by email
+    app.get("/teachers/:email", async (req, res) => {
       try {
-        const teacherId = req.params.id;
+        const teacherEmail = req.params.email;
         const teacher = await TeacherCollection.findOne({
-          _id: ObjectId(teacherId),
+          email: teacherEmail,
         });
         if (!teacher) {
           res.status(404).json({ message: "Teacher not found" });
